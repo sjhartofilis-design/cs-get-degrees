@@ -1,8 +1,7 @@
-import { render, screen } from '@testing-library/react'
-import { HashRouter } from 'react-router-dom'
-import App from './App'
+import { screen } from '@testing-library/react'
+import { renderApp } from './test/render'
 
 it('renders the app name', () => {
-  render(<HashRouter><App /></HashRouter>)
-  expect(screen.getByText("C's Get Degrees")).toBeInTheDocument()
+  renderApp()
+  expect(screen.getByRole('link', { name: "C's Get Degrees" })).toBeInTheDocument()
 })

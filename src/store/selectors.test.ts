@@ -6,6 +6,7 @@ import {
   getInstructor,
   getPilotRecord,
   getResponses,
+  getStatus,
   getSuggestions,
 } from './selectors'
 
@@ -28,6 +29,17 @@ it('filters responses and suggestions by check and question', () => {
   expect(q1.length).toBeGreaterThan(0)
   expect(q1.length).toBeLessThan(all.length)
   expect(q1.every(x => x.questionId === 'q-morgan-1-1')).toBe(true)
+})
+
+it('derives each demo check status per SPEC §8', () => {
+  expect(s.checks.map(c => [c.id, getStatus(s, c.id)])).toEqual([
+    ['check-morgan-1', 'Reviewed'],
+    ['check-morgan-2', 'Reviewed'],
+    ['check-taylor-1', 'Reviewed'],
+    ['check-taylor-2', 'Ready for Review'],
+    ['check-rivera-1', 'Ready for Review'],
+    ['check-rivera-2', 'Draft'],
+  ])
 })
 
 it('finds pilot records and feedback', () => {

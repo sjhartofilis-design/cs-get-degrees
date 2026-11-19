@@ -1,5 +1,6 @@
 // Read helpers over AppState so pages don't repeat filtering logic.
 import type { AppState } from '../types'
+import { getCheckStatus } from '../lib/checkStatus'
 
 export const getInstructor = (s: AppState, id: string) => s.instructors.find(i => i.id === id)
 
@@ -18,3 +19,6 @@ export const getSuggestions = (s: AppState, checkId: string, questionId?: string
 export const getPilotRecord = (s: AppState, checkId: string) => s.pilotRecords.find(r => r.checkId === checkId)
 
 export const getFeedback = (s: AppState, instructorId: string) => s.feedback.find(f => f.instructorId === instructorId)
+
+export const getStatus = (s: AppState, checkId: string) =>
+  getCheckStatus(getResponses(s, checkId), getSuggestions(s, checkId), getPilotRecord(s, checkId))
