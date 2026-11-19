@@ -15,7 +15,7 @@
 - No backend, no auth, no API keys, no paid services. No `fetch`/XHR anywhere in `src/` (SPEC C2, C3).
 - No grades, points, scores, rankings or predictions in UI text or data (C4).
 - CSV import rejects the identifying headers `name, first_name, last_name, email, student_id, student_number, grade, score, points` (C5, §6.3).
-- Exact labels: "Demo Data", "Demo Only", "Not Yet Tested", "Prototype rule-based suggestion". The word "AI" never appears in the UI (C6, C7).
+- Exact labels: "Demo Data", "Demo Only", "Not Yet Tested", "Prototype rule-based suggestion", "AI-suggested pattern — verify before use", "Pre-generated for the demo" (SPEC v0.2 C6, C7). No live network calls in Phase 1.
 - Suggestions start as `'Needs Review'`, and a rule fires only with ≥2 supporting responses (§7).
 - Only `src/store/storage.ts` touches `localStorage`, under the key `csgd:state:v1` (§5.3).
 - Workload target: 10 minutes per check. Pilot plan: 3 instructors × 2 checks (§6.6).
@@ -409,7 +409,7 @@ it('instructor notes save on blur and persist', ...)
 it('footer shows "N of M suggestions still need review"', ...)
 it('zero responses shows the empty state linking to Import, with no charts', ...)
 it('coverage under 50% shows the low-coverage notice', ...)
-it('page text never contains the word "AI"', () => { expect(document.body.textContent).not.toMatch(/\bAI\b/); });
+it('AI suggestions carry "AI-suggested pattern — verify before use" and "Pre-generated for the demo"; rule suggestions carry "Prototype rule-based suggestion"', ...); // SPEC v0.2 C7
 ```
 - [ ] **Step 2:** Run. Expected: FAIL.
 - [ ] **Step 3:** Implement per SPEC §6.4. Bars are `<div role="img" aria-label="B, It stays the same.: 5 responses, 63%">` with a visible text value.
@@ -482,6 +482,29 @@ it('shows total effort per instructor including first-time setup minutes', ...)
 - [ ] **Step 3:** Write `README.md` (beginner voice) with these sections: What this is (and isn't) · Requirements (Node LTS) · Install (`npm install`) · Run (`npm run dev`, open the printed URL) · Test (`npm test`) · Folder structure (the tree above with one line per folder) · Demo data (seeded on first load; "Reset demo data" button; "Load Sample Responses") · Walkthrough of the 5-step workflow · Deploy (Netlify: build `npm run build`, publish `dist`; Vercel: framework preset Vite; no env vars needed because hash routing needs no rewrites) · Privacy notes (C3–C6) · Where to plug in a database (`src/store/storage.ts`) or an approved AI service (`src/analysis/engine.ts`).
 - [ ] **Step 4:** Run `npm test && npm run build && npx vite preview`, and manually click through the workflow at desktop width and at 375px width (check there's no horizontal page scroll, focus rings are visible, and the app works by keyboard alone).
 - [ ] **Step 5: Commit** with message `docs: README and end-to-end workflow test`.
+
+---
+
+### Task 14: AI explanation analysis, Phase 1 (pre-generated) — SPEC v0.2 §7
+
+Run after Task 9 and before Task 10.
+
+**Files:**
+- Create: `src/analysis/aiAnalyzer.ts` (types + `validateAiPatterns`), `src/analysis/precomputed.ts` (pre-generated demo analysis + `precomputedAnalyzer`), `src/analysis/analysisEngine.ts`, and tests for each
+- Modify: `src/types.ts` (`source` on `MisconceptionSuggestion`), `src/analysis/engine.ts` (rule output carries `source: 'rules'`), `src/data/demoData.ts` (seed from `analysisEngine`; overrides keyed to AI ids), `src/store/AppStore.tsx` (default engine `analysisEngine`)
+
+**Interfaces:**
+- `interface AiPattern { questionId: string; patternId: string; description: string; supportingResponseIds: string[] }`
+- `type ExplanationAnalyzer = (check: Check, responses: StudentResponse[]) => AiPattern[] | null` (null = no AI analysis available → rule fallback)
+- `validateAiPatterns(check, responses, patterns): EngineSuggestion[]` (§7.1 validation; `ruleId: 'ai-' + patternId`, `source: 'ai'`)
+- `precomputedAnalyzer: ExplanationAnalyzer` (matches only an unchanged demo response set)
+- `createAnalysisEngine(analyzer: ExplanationAnalyzer): MisconceptionEngine` and `analysisEngine = createAnalysisEngine(precomputedAnalyzer)`
+
+- [ ] **Step 1: Write failing tests:** validation drops unknown/duplicate IDs, discards patterns under 2 supporters or without the prefix; precomputed matches demo sets only (an edited explanation → null); every stored pattern survives validation unchanged; each demo set has ≥1 misconception and ≥1 gap pattern; the engine combines shared-incorrect-choice with AI patterns when available and falls back to keyword + uncertain rules otherwise; createDemoState statuses still match SPEC §8.
+- [ ] **Step 2:** Run `npx vitest run src/analysis src/data`. Expected: FAIL.
+- [ ] **Step 3:** Implement. Write the pre-generated patterns by reading each demo response set.
+- [ ] **Step 4:** Run `npm test && npm run build`. Expected: PASS.
+- [ ] **Step 5: Commit** with message `feat: AI explanation analysis (pre-generated, Phase 1)`.
 
 ---
 

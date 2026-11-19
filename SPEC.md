@@ -1,6 +1,6 @@
 # C's Get Degrees — MVP Specification
 
-**Status:** Draft v0.1 (2026-11-19)
+**Status:** Draft v0.2 (2026-11-19). v0.2 makes AI analysis of free-text explanations the core of the product (§7). This deliberately departs from the brief, which banned AI calls for the first prototype. **[Decision — product owner, 2026-11-19]**
 **Sources:** `BASELINE_PROMPT.md` (product brief, primary) · `../CsGetDegrees_P5.pptx` (ENTR 20000 P5 problem–solution fit deck, slides 1–8 and speaker notes)
 **Rule:** Where this spec adds to or departs from the brief, the line is marked **[Deck]** (taken from the presentation) or **[Decision]** (an implementation choice made here). Everything unmarked restates the brief.
 
@@ -23,18 +23,18 @@ The app is a **single-browser, no-backend prototype** for a pilot of **3 instruc
 |---|---|
 | C1 | React + Vite + TypeScript + Tailwind CSS; PapaParse for CSV; charts built with plain React/Tailwind (no chart library). |
 | C2 | All data in browser `localStorage`. No backend, no auth, no paid services, no API keys. |
-| C3 | No network requests that send student responses anywhere. No AI/LLM calls. |
+| C3 | **[Decision]** Free-text explanations are analysed by an AI model (§7). Closed answers (the multiple-choice picks) are analysed by deterministic rules. **Phase 1 (this build):** the browser makes no network calls; demo checks ship with AI analysis generated ahead of time (with Claude) from the fictional demo responses. **Phase 2 (when an API key is added):** one serverless function holds the key and forwards anonymized responses (`response_id`, choices, explanations, never anything else) to the model. Real student responses are sent only after the instructor confirms the institution has approved it. The browser never holds the key. |
 | C4 | No grades, points, scores, rankings, risk scores or performance predictions, anywhere in the UI or the data. |
 | C5 | No PII. CSV imports hold only `response_id` plus choices and explanations. Files with identifying columns are rejected (§6.3). |
 | C6 | All demo content is fictional and labelled **"Demo Data"**. Demo-derived metrics are labelled **"Demo Only"**. The real pilot status reads **"Not Yet Tested"** until real data exists. |
-| C7 | Automated suggestions are labelled **"Prototype rule-based suggestion"**, never "AI". Each one starts as **Needs Review** and only counts as a finding once a human confirms or edits it. |
-| C8 | No invented evidence: every suggestion lists the real response IDs and excerpts that triggered it. No confidence percentages. |
-| C9 | The misconception engine sits behind one function signature (§7) so an institutionally approved AI service can replace it later. Persistence sits behind one storage module (§5.3) so a database can replace it later. |
+| C7 | Every automated suggestion is labelled by its source: **"AI-suggested pattern — verify before use"** for AI output and **"Prototype rule-based suggestion"** for rule output. It is never called an "insight" or a "finding". Each one starts as **Needs Review** and only counts once a human confirms or edits it. |
+| C8 | No invented evidence: every suggestion lists the real response IDs and excerpts behind it. AI output is validated before display: unknown response IDs are dropped, and a suggestion left with fewer than 2 supporting responses is discarded. No confidence percentages. |
+| C9 | Suggestions come from one engine function (§7), which combines the closed-answer rules with an explanation analyzer. The analyzer is swappable (pre-generated → live API) without touching the screens. Persistence sits behind one storage module (§5.3) so a database can replace it later. |
 | C10 | Deploys as a static site (Vercel/Netlify) with no server configuration. **[Decision]** Use hash routing (`/#/pilot`) so deep links work on any static host without rewrite rules. |
 | C11 | Beginner-readable code: small files, one job per file, comments only on non-obvious logic. |
 
 ### Out of scope (do not build)
-Student accounts or a student portal · SSO · LMS API integrations · AI/ML of any kind · grading or prediction · attendance or risk scoring · email/notifications · payments · permissions/admin panels · institution-wide analytics · multi-user sync.
+Student accounts or a student portal · SSO · LMS API integrations · ML model training · AI grading, scoring or prediction · the Phase 2 live AI relay (specified in §7.4, built when the key is added) · grading or prediction · attendance or risk scoring · email/notifications · payments · permissions/admin panels · institution-wide analytics · multi-user sync.
 
 ## 3. Workflow
 
@@ -117,7 +117,8 @@ interface MisconceptionSuggestion {
   id: string;
   checkId: string;
   questionId: string;
-  ruleId: string;                  // which rule produced it
+  ruleId: string;                  // which rule or AI pattern produced it
+  source: 'ai' | 'rules';          // [Decision] drives the C7 label
   description: string;             // rule output, never overwritten
   editedDescription: string | null;// instructor's interpretation when status is 'Edited'
   supportingResponseIds: string[];
@@ -241,11 +242,11 @@ It never includes the reference answer, instructor notes or student explanation.
   - **A. Answer distribution:** a horizontal bar per option (letter, option text, count, percentage of respondents). The reference answer is marked "Reference answer" (an icon plus text, not colour alone). No scores.
   - **B. Explanations:** a list of `response_id · choice · explanation`, filterable by option. Blank explanations show as *No explanation*.
   - **C. Possible misconception patterns:** suggestion cards for this question, each showing:
-    - the label "Prototype rule-based suggestion", the description (or the edited interpretation, with the original visible beneath)
+    - the source label from C7 (for pre-generated AI output, also "Pre-generated for the demo"), the description (or the edited interpretation, with the original visible beneath)
     - the number of supporting responses, and supporting excerpts (`response_id`, choice, explanation)
     - a status badge, and an instructor notes textarea (saves on blur)
     - **Confirm Pattern**, **Edit Interpretation** (an inline textarea; saving sets *Edited*; it can't be empty), and **Dismiss Pattern**. A reviewed card offers **Undo** back to *Needs Review*.
-  - If no rule fires: "No patterns detected by the prototype rules. Review the explanations above directly."
+  - If nothing is suggested: "No patterns detected. Review the explanations above directly."
 - Footer: "N of M suggestions still need review" and a button to Plan Next Lesson. The button is always available; the counter is the nudge.
 
 ### 6.5 Screen 5 — Next Lesson Decision
@@ -286,6 +287,33 @@ Also shown: total pilot effort per instructor (sum of actual minutes + first-tim
 
 ## 7. Misconception engine
 
+**[Decision v0.2]** The analysis is split by the type of answer:
+
+| Input | Analysed by | Output |
+|---|---|---|
+| Multiple-choice picks (closed) | Deterministic rules: answer distribution (§6.4 A) and *shared incorrect choice* (rule 2 below) | `source: 'rules'` |
+| Written explanations (open) | **AI explanation analyzer** (§7.1) | `source: 'ai'` |
+
+When no AI analysis is available for a response set (Phase 1: any check that isn't an unchanged demo set), the keyword rules and the *right answer, uncertain reasoning* rule (rules 1 and 3 below) stand in for the analyzer, labelled as rule-based.
+
+### 7.1 AI explanation analyzer
+- **Task given to the model:** for each question, read every `response_id · choice · explanation` (plus the prompt, options and reference answer). Group explanations that show the same underlying misunderstanding, including correct choices with flawed or missing reasoning. Return 0–4 patterns per question.
+- **Output per pattern:** `questionId`, a short `patternId` slug, a `description` that starts with "Possible misconception:" or "Possible gap:" and is phrased as a hypothesis, and `supportingResponseIds`. No scores, rankings or confidence values. No statements about individual students.
+- **Validation (C8) before display:** drop IDs not in the response set, drop duplicate IDs, and discard any pattern left with fewer than 2 supporters or whose description doesn't start with one of the two prefixes. Stored as `ruleId: 'ai-' + patternId`, `source: 'ai'`.
+
+### 7.2 Phase 1 — pre-generated analysis (this build)
+`src/analysis/precomputed.ts` holds AI analysis generated with Claude during development for the five demo checks with responses and for the Free Fall sample set. It applies only when a check's responses match that demo set exactly (same IDs, choices and explanations). Any other import falls back to the rules. The README states how this analysis was produced.
+
+### 7.3 Combining
+`analysisEngine(check, responses)` = closed-answer rules + (AI patterns if available, else the fallback text rules), ordered by support count, highest first. The store calls only `analysisEngine`.
+
+### 7.4 Phase 2 — live analysis (specified, not built)
+- `POST /api/analyze` (a Netlify/Vercel function) with `{ check, responses }` returns the §7.1 output. The function holds `ANTHROPIC_API_KEY`, calls Claude (model `claude-opus-5-5`, structured JSON output), and requires a deployment passcode so strangers can't spend the key.
+- The client runs it after import, shows "Analysing explanations…", validates per §7.1, and falls back to rules on any error, timeout or refusal.
+- Before the first real (non-demo) send: a one-time confirmation that the responses are anonymized and the institution approved AI processing.
+
+### 7.5 Rule library (closed answers + fallback)
+
 **Seam (C9):**
 ```ts
 type MisconceptionEngine = (check: Check, responses: StudentResponse[]) => Omit<MisconceptionSuggestion, 'id' | 'reviewStatus' | 'instructorNotes' | 'editedDescription'>[];
@@ -319,7 +347,7 @@ A response may support more than one suggestion. Suggestions are ordered by supp
 | Alex Rivera | TA | Introductory Physics | Force and Motion | Free Fall |
 
 - Each check has **6–10** fictional responses, IDs `S001…` restarting per check, with the brief's mix: correct + sound, incorrect + misconception, **correct + flawed reasoning**, and unclear/blank.
-- Every demo check triggers ≥1 keyword rule and ≥1 "right answer, uncertain reasoning" suggestion.
+- Every demo check (and the Free Fall sample set) has pre-generated AI analysis (§7.2) with ≥1 misconception pattern and ≥1 "Possible gap" pattern (right answer, reasoning not shown). The demo responses still trigger ≥1 keyword rule each, so the rule fallback can be demonstrated by re-importing an edited copy.
 - Demo state: Dr. Morgan's checks are *Reviewed* (suggestions reviewed, decision saved). Prof. Taylor has one *Reviewed* check and one *Ready for Review*. Alex Rivera has one *Ready for Review* and one *Draft* (0 responses, to demonstrate the import flow). Demo feedback: Morgan reuse Yes, Taylor unanswered, Rivera unanswered.
 - The Conservation of Matter check uses the brief's sample CSV rows S001–S004 plus additional rows.
 
@@ -350,3 +378,5 @@ Vitest + React Testing Library (free and local, so C2 holds). Pure logic (CSV va
 2. **50% low-coverage threshold** (§6.4) is a placeholder. The deck names low coverage as a stop signal but gives no number.
 3. **Workload "Not met" triggers on the first violating check** rather than waiting for all 6. Is that the intended reading of the deck's gate?
 4. **Student-facing explanation and pre-results plan** (from the deck's notes) are optional fields. Keep them, or cut them to stay closer to the brief?
+5. **AI label wording.** Is "AI-suggested pattern — verify before use" the right label for instructors?
+6. **Phase 2 approval.** Who at the institution signs off on sending anonymized explanations to an AI provider, and is a per-check confirmation needed or a one-time one?
