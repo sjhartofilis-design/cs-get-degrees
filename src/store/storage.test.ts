@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import { createDemoState } from '../data/demoData'
+import { createDemoState } from '../data/seed'
 import { STORAGE_KEY, clearState, loadState, saveState } from './storage'
 
 afterEach(() => vi.restoreAllMocks())

@@ -51,8 +51,9 @@ export interface MisconceptionSuggestion {
   id: string
   checkId: string
   questionId: string
-  ruleId: string
-  description: string // rule output, never overwritten
+  ruleId: string // rule id, or 'ai-<patternId>' for AI patterns
+  source: 'ai' | 'rules' // decides the label shown to instructors (SPEC C7)
+  description: string // engine output, never overwritten
   editedDescription: string | null
   supportingResponseIds: string[]
   reviewStatus: ReviewStatus

@@ -1,7 +1,5 @@
 // Fictional demonstration data (SPEC §8). Nothing here is real student data.
-import { buildSuggestions, ruleBasedEngine } from '../analysis/engine'
 import type {
-  AppState,
   Check,
   ChoiceLetter,
   Instructor,
@@ -273,7 +271,7 @@ export const demoReviewedCheckIds = ['check-morgan-1', 'check-morgan-2', 'check-
 
 // Keyed by suggestion id (see suggestionId in src/analysis/engine.ts).
 export const demoReviewOverrides: Record<string, ReviewOverride> = {
-  'check-morgan-1:volume-vs-mass:q-morgan-1-1': {
+  'check-morgan-1:ai-volume-mass:q-morgan-1-1': {
     reviewStatus: 'Confirmed',
     editedDescription: null,
     instructorNotes: 'Matches what I heard during lab last week.',
@@ -283,12 +281,12 @@ export const demoReviewOverrides: Record<string, ReviewOverride> = {
     editedDescription: null,
     instructorNotes: 'Same students as the volume-vs-mass pattern; not a separate issue.',
   },
-  'check-morgan-1:right-answer-uncertain-reasoning:q-morgan-1-1': {
+  'check-morgan-1:ai-unexplained-correct:q-morgan-1-1': {
     reviewStatus: 'Edited',
     editedDescription: 'Some students picked "stays the same" but could not explain conservation of mass.',
     instructorNotes: '',
   },
-  'check-taylor-1:one-side-only:q-taylor-1-1': {
+  'check-taylor-1:ai-one-side-only:q-taylor-1-1': {
     reviewStatus: 'Edited',
     editedDescription: 'Students may be undoing the +5 on one side only instead of keeping the equation balanced.',
     instructorNotes: 'Revisit the balance-scale model.',
@@ -340,28 +338,3 @@ export const demoFeedback: InstructorFeedback[] = [
   { instructorId: 'inst-taylor', wouldReuse: null, qualitativeFeedback: '', stopOrReviseReasons: [], firstTimeSetupMinutes: null },
   { instructorId: 'inst-rivera', wouldReuse: null, qualitativeFeedback: '', stopOrReviseReasons: [], firstTimeSetupMinutes: null },
 ]
-
-// Builds the seed state. Suggestions come from the real engine so the demo shows exactly
-// what the rules produce; the overrides then set the review statuses described in SPEC §8.
-export function createDemoState(): AppState {
-  const suggestions = demoChecks.flatMap(check => {
-    const responses = demoResponses.filter(r => r.checkId === check.id)
-    return buildSuggestions(check, responses, ruleBasedEngine).map(s => {
-      const override = demoReviewOverrides[s.id]
-      if (override) return { ...s, ...override }
-      if (demoReviewedCheckIds.includes(s.checkId)) return { ...s, reviewStatus: 'Confirmed' as const }
-      return s
-    })
-  })
-
-  return structuredClone({
-    version: 1 as const,
-    selectedInstructorId: demoInstructors[0].id,
-    instructors: demoInstructors,
-    checks: demoChecks,
-    responses: demoResponses,
-    suggestions,
-    pilotRecords: demoPilotRecords,
-    feedback: demoFeedback,
-  })
-}

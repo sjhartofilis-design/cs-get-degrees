@@ -1,5 +1,5 @@
 import type { AppState, Check, InstructorFeedback, PilotRecord, StudentResponse } from '../types'
-import { createDemoState } from '../data/demoData'
+import { createDemoState } from '../data/seed'
 import { evaluatePilot, isJustifiedDecision, PLANNED_CHECKS_PER_INSTRUCTOR, PLANNED_INSTRUCTORS, WORKLOAD_LIMIT_MINUTES } from './pilotEvaluation'
 
 const INSTRUCTORS = ['inst-morgan', 'inst-taylor', 'inst-rivera']
@@ -120,7 +120,7 @@ it('workload Met only when all 6 planned checks have both values within limits',
 
 it('human review Not enough data while any suggestion is Needs Review; Met when none remain', () => {
   const s = realState(1)
-  const base = { checkId: 'real-inst-morgan-1', questionId: 'q', ruleId: 'r', description: 'd', editedDescription: null, supportingResponseIds: ['R1'], instructorNotes: '' }
+  const base = { checkId: 'real-inst-morgan-1', questionId: 'q', ruleId: 'r', source: 'rules' as const, description: 'd', editedDescription: null, supportingResponseIds: ['R1'], instructorNotes: '' }
   s.suggestions = [
     { ...base, id: 'a', reviewStatus: 'Confirmed' },
     { ...base, id: 'b', reviewStatus: 'Needs Review' },

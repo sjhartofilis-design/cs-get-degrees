@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createDemoState } from '../data/demoData'
+import { createDemoState } from '../data/seed'
 import { renderApp } from '../test/render'
 
 function stat(label: string) {

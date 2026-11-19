@@ -1,6 +1,6 @@
-// The misconception engine seam (SPEC §7, C9).
-// Anything matching MisconceptionEngine can replace ruleBasedEngine later,
-// e.g. an institutionally approved AI service.
+// Rule-based analysis (SPEC §7.5): closed-answer rules plus the keyword rules that stand in
+// for AI analysis of explanations when none is available. See analysisEngine.ts for how
+// rules and AI patterns are combined.
 import type { Check, ChoiceLetter, MisconceptionSuggestion, StudentResponse } from '../types'
 import { CHOICE_LETTERS } from '../types'
 import {
@@ -43,7 +43,14 @@ export const ruleBasedEngine: MisconceptionEngine = (check, responses) => {
     const isCorrect = (a: Answer) => a.choice === question.referenceAnswer
     const add = (ruleId: string, description: string, supporters: Answer[]) => {
       if (supporters.length >= MIN_SUPPORT) {
-        out.push({ checkId: check.id, questionId: question.id, ruleId, description, supportingResponseIds: supporters.map(a => a.responseId) })
+        out.push({
+          checkId: check.id,
+          questionId: question.id,
+          ruleId,
+          source: 'rules',
+          description,
+          supportingResponseIds: supporters.map(a => a.responseId),
+        })
       }
     }
 

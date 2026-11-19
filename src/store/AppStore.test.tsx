@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi } from 'vitest'
-import { createDemoState } from '../data/demoData'
+import { createDemoState } from '../data/seed'
 import { AppStoreProvider, useAppStore } from './AppStore'
 import { STORAGE_KEY } from './storage'
 

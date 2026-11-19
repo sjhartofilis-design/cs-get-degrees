@@ -1,6 +1,6 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { createDemoState } from '../data/demoData'
+import { createDemoState } from '../data/seed'
 import { formatLmsText } from '../lib/lmsText'
 import { STORAGE_KEY } from '../store/storage'
 import { renderApp } from '../test/render'

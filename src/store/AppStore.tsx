@@ -1,8 +1,9 @@
 // React context that owns AppState and saves it after every change.
 import { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react'
 import type { AppState } from '../types'
-import { ruleBasedEngine, type MisconceptionEngine } from '../analysis/engine'
-import { createDemoState } from '../data/demoData'
+import { analysisEngine } from '../analysis/analysisEngine'
+import type { MisconceptionEngine } from '../analysis/engine'
+import { createDemoState } from '../data/seed'
 import { createReducer, type AppAction } from './appReducer'
 import { loadState, saveState } from './storage'
 
@@ -32,7 +33,7 @@ interface ProviderProps {
   engine?: MisconceptionEngine
 }
 
-export function AppStoreProvider({ children, initialState, engine = ruleBasedEngine }: ProviderProps) {
+export function AppStoreProvider({ children, initialState, engine = analysisEngine }: ProviderProps) {
   const [init] = useState(() => initialize(initialState))
   const reducer = useMemo(() => createReducer(engine, createDemoState), [engine])
   const [state, dispatch] = useReducer(reducer, init.state)

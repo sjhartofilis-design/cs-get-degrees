@@ -1,4 +1,4 @@
-import { createDemoState } from '../data/demoData'
+import { createDemoState } from '../data/seed'
 import {
   getCheck,
   getChecksForInstructor,

@@ -1,6 +1,6 @@
 import type { AppState, Check, InstructorFeedback, PilotRecord, StudentResponse } from '../types'
 import type { MisconceptionEngine } from '../analysis/engine'
-import { createDemoState } from '../data/demoData'
+import { createDemoState } from '../data/seed'
 import { createReducer } from './appReducer'
 
 // Stub engine: one suggestion per question, supported by every response.
@@ -9,6 +9,7 @@ const stubEngine: MisconceptionEngine = (check, responses) =>
     checkId: check.id,
     questionId: q.id,
     ruleId: 'stub',
+    source: 'rules' as const,
     description: `stub for ${q.id}`,
     supportingResponseIds: responses.map(r => r.id),
   }))
