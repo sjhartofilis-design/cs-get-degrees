@@ -36,7 +36,7 @@ export function isJustifiedDecision(r: PilotRecord): boolean {
 
 // Real mode: checks the instructor created that hold at least one real (non-demo) response.
 // Demo mode: the fictional demo checks that have responses.
-function evaluatedChecks(state: AppState, mode: 'real' | 'demo'): Check[] {
+export function evaluatedChecks(state: AppState, mode: 'real' | 'demo'): Check[] {
   return state.checks.filter(c => {
     const rows = state.responses.filter(r => r.checkId === c.id)
     return mode === 'demo' ? c.isDemo && rows.length > 0 : !c.isDemo && rows.some(r => !r.isDemo)
