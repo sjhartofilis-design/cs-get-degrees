@@ -1,5 +1,7 @@
 // Fictional demonstration data (SPEC §8). Nothing here is real student data.
+import { buildSuggestions, ruleBasedEngine } from '../analysis/engine'
 import type {
+  AppState,
   Check,
   ChoiceLetter,
   Instructor,
@@ -338,3 +340,28 @@ export const demoFeedback: InstructorFeedback[] = [
   { instructorId: 'inst-taylor', wouldReuse: null, qualitativeFeedback: '', stopOrReviseReasons: [], firstTimeSetupMinutes: null },
   { instructorId: 'inst-rivera', wouldReuse: null, qualitativeFeedback: '', stopOrReviseReasons: [], firstTimeSetupMinutes: null },
 ]
+
+// Builds the seed state. Suggestions come from the real engine so the demo shows exactly
+// what the rules produce; the overrides then set the review statuses described in SPEC §8.
+export function createDemoState(): AppState {
+  const suggestions = demoChecks.flatMap(check => {
+    const responses = demoResponses.filter(r => r.checkId === check.id)
+    return buildSuggestions(check, responses, ruleBasedEngine).map(s => {
+      const override = demoReviewOverrides[s.id]
+      if (override) return { ...s, ...override }
+      if (demoReviewedCheckIds.includes(s.checkId)) return { ...s, reviewStatus: 'Confirmed' as const }
+      return s
+    })
+  })
+
+  return structuredClone({
+    version: 1 as const,
+    selectedInstructorId: demoInstructors[0].id,
+    instructors: demoInstructors,
+    checks: demoChecks,
+    responses: demoResponses,
+    suggestions,
+    pilotRecords: demoPilotRecords,
+    feedback: demoFeedback,
+  })
+}
