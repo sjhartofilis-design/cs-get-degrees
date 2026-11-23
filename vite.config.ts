@@ -9,5 +9,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     globals: true,
+    // Claude Code worktrees live under .claude/; without this their copies of the tests run too.
+    exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
   },
 })

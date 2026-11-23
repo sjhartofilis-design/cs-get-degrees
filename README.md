@@ -110,6 +110,8 @@ No environment variables are needed in Phase 1.
 
 ## Project documents
 
+- `ROADMAP.md`: what's done, what's left, and open questions for the team.
+- `AGENTS.md` (imported by `CLAUDE.md`): rules and architecture notes for AI coding agents.
 - `BASELINE_PROMPT.md`: the original product brief.
 - `SPEC.md`: the MVP specification (v0.2 adds AI analysis of explanations).
 - `docs/superpowers/plans/`: the implementation plan.
